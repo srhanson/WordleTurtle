@@ -42,3 +42,32 @@ func Test_makeSummaryPositionMessage(t *testing.T) {
 	expected := "Results for Wordle #123:\n3/6: user2, user3\n5/6: user1\nx/6: user4\n"
 	assert.Equal(t, expected, res)
 }
+
+func Test_namesString(t *testing.T) {
+	inputs := []struct {
+		inputs   []string
+		expected string
+	}{
+		{inputs: []string{"sean"}, expected: "sean"},
+		{inputs: []string{"sean", "lara"}, expected: "sean and lara"},
+		{inputs: []string{"sean", "lara", "dom"}, expected: "sean, lara and dom"},
+	}
+
+	for _, testcase := range inputs {
+		res := namesString(testcase.inputs)
+		assert.Equal(t, testcase.expected, res)
+	}
+}
+
+/* spot check test
+func Test_getWordlePost(t *testing.T) {
+	inputs := []Result{
+		{score: 5, displayName: "user1", wordlenum: 123},
+		{score: 3, displayName: "user3", wordlenum: 123},
+		{score: 7, displayName: "user4", wordlenum: 123},
+	}
+	res := getWordlePost(inputs[1], inputs, []string{"user1", "user2", "user3", "user4"}, []string{"user2"})
+	expected := "Results for Wordle #123:\n3/6: user2, user3\n5/6: user1\nx/6: user4\n"
+	assert.Equal(t, expected, res)
+}
+*/

@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
+	"time"
 	"wordleturtle/config"
 
 	"github.com/akrylysov/algnhsa"
@@ -147,22 +147,47 @@ func (h *HTTPHandler) handleUserMessage(me *slackevents.MessageEvent) error {
 			return err
 		}
 		log.Printf("we have %d users", len(users))
+		missing := getMissingPlayers(api, users, dailies)
 
-		leaders := getLeaders(dailies)
-		leaderStr := leaderString(leaders)
+		if len(dailies) == 1 {
+			// Schedule 2 messages: a reminder before deadline and then final results
+			go func(exemplar Result) {
+				// deadline 5PM PT
+				loc, _ := time.LoadLocation("America/Los_Angeles")
+				now := time.Now().In(loc)
+				deadline := time.Date(now.Year(), now.Month(), now.Day(), 17, 0, 0, 0, loc)
+				if now.After(deadline) {
+					deadline = deadline.AddDate(0, 0, 1)
+				}
+				predeadline := deadline.Add(-1 * time.Hour)
+				time.Sleep(time.Until(predeadline))
+				api := slack.New(h.config.SlackBotToken)
+				_, _, err = api.PostMessage(me.Channel, slack.MsgOptionText(":hourglass: 1 hour to deadline! :hourglass:", false))
+				time.Sleep(time.Until(deadline))
+				// refresh api (not sure if necessary)
+				api = slack.New(h.config.SlackBotToken)
 
-		// All users played (except the bot)?
-		remaining := len(users) - len(dailies) - 1
-		summaryMsg := makeSummaryPositionMessage(dailies)
-		if remaining <= 0 {
-			winners := fmt.Sprintf("Congratulations to %s!\nFinal %s", leaderStr, summaryMsg)
-			_, _, err = api.PostMessage(me.Channel, slack.MsgOptionText(winners, false))
-			return err
+				// TODO - this needs a lot of refactor
+				db, _ := NewDB("./wordles")
+				dailies, _ := db.getDailyResults(res.wordlenum)
+				leaders := getLeaders(dailies)
+				summaryMsg := makeSummaryPositionMessage(dailies)
+				params := slack.GetUsersInConversationParameters{ChannelID: me.Channel, Limit: 100}
+				users, _, _ := api.GetUsersInConversation(&params)
+				missing := getMissingPlayers(api, users, dailies)
+
+				msg := fmt.Sprintf(":confetti_ball: Congratulations to %s! :confetti_ball:\nFinal %s", leaderString(leaders), summaryMsg)
+
+				if len(missing) > 0 {
+					msg += fmt.Sprintf("\n:turkey: %s forgot to show up!", namesString(missing))
+				}
+				_, _, err = api.PostMessage(me.Channel, slack.MsgOptionText(msg, false))
+			}(*res)
 		}
 
-		missing := getMissingPlayers(api, users, dailies)
-		summary := fmt.Sprintf("Current %s\nWaiting on: %s", summaryMsg, strings.Join(missing, ", "))
-		_, _, err = api.PostMessage(me.Channel, slack.MsgOptionText(summary, false))
+		slackPost := getWordlePost(*res, dailies, users, missing)
+
+		_, _, err = api.PostMessage(me.Channel, slack.MsgOptionText(slackPost, false))
 		return err
 	}
 	// TODO - support commands

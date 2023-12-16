@@ -47,16 +47,67 @@ func getLeaders(results []Result) []Result {
 	return leaders
 }
 
-func leaderString(leaders []Result) string {
-	if len(leaders) == 1 {
-		return leaders[0].displayName
+func namesString(names []string) string {
+	if len(names) == 1 {
+		return names[0]
 	}
-	suffix := leaders[len(leaders)-2].displayName + " and " + leaders[len(leaders)-1].displayName
+	suffix := names[len(names)-2] + " and " + names[len(names)-1]
 	prefix := ""
-	for _, l := range leaders[:len(leaders)-2] {
-		prefix += l.displayName + ", "
+	for _, l := range names[:len(names)-2] {
+		prefix += l + ", "
 	}
 	return prefix + suffix
+}
+
+func leaderString(leaders []Result) string {
+	names := make([]string, 0)
+	for _, l := range leaders {
+		names = append(names, l.displayName)
+	}
+
+	return namesString(names)
+}
+
+func getWordlePost(current Result, dailies []Result, users, missing []string) string {
+	leaders := getLeaders(dailies)
+	leaderStr := leaderString(leaders)
+
+	// All users played (except the bot)?
+	summaryMsg := makeSummaryPositionMessage(dailies)
+
+	if len(missing) == 0 {
+		return fmt.Sprintf(":confetti_ball: Congratulations to %s! :confetti_ball:\nFinal %s", leaderStr, summaryMsg)
+	}
+
+	summary := fmt.Sprintf("Current %s\nWaiting on: %s :hourglass:", summaryMsg, strings.Join(missing, ", "))
+
+	if len(dailies) == 1 {
+		// First person to play, give them a little earlybird message
+		summary = fmt.Sprintf("%s\n%s", getEarlyBirdMessage(current.score), summary)
+	} else if userInLead(current, dailies) {
+		summary = fmt.Sprintf("%s\n%s", getAffirmation(current.score), summary)
+	} else if userInLast(current, dailies) {
+		summary = fmt.Sprintf("%s\n%s", getConsolation(), summary)
+	}
+	return summary
+}
+
+func userInLead(result Result, results []Result) bool {
+	if len(results) == 0 {
+		return false
+	}
+	sort.Slice(results, func(i, j int) bool { return results[i].score < results[j].score })
+
+	return result.score == results[0].score
+}
+
+func userInLast(result Result, results []Result) bool {
+	if len(results) == 0 {
+		return false
+	}
+	sort.Slice(results, func(i, j int) bool { return results[i].score < results[j].score })
+
+	return result.score == results[len(results)-1].score
 }
 
 func makeSummaryPositionMessage(results []Result) string {
