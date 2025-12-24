@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	handler := app.NewHandler(c)
 	log.Fatal(handler.Start())
 }

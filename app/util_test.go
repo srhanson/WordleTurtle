@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,6 +21,11 @@ func TestExtractWordle(t *testing.T) {
 	res = extractWordleResult("Wordle 867 X/6")
 	assert.Equal(t, 867, res.wordlenum)
 	assert.Equal(t, 7, res.score)
+	assert.Equal(t, 0, res.hardmode)
+
+	res = extractWordleResult("Wordle 1,000 :tada: 4/6")
+	assert.Equal(t, 1000, res.wordlenum)
+	assert.Equal(t, 4, res.score)
 	assert.Equal(t, 0, res.hardmode)
 }
 
@@ -55,6 +61,22 @@ func Test_namesString(t *testing.T) {
 
 	for _, testcase := range inputs {
 		res := namesString(testcase.inputs)
+		assert.Equal(t, testcase.expected, res)
+	}
+}
+
+func Test_WordleForDay(t *testing.T) {
+	inputs := []struct {
+		inputs   time.Time
+		expected int
+	}{
+		{inputs: time.Date(2024, 12, 23, 0, 0, 0, 0, DefaultLocation()), expected: 1283},
+		{inputs: time.Date(2025, 12, 23, 0, 0, 0, 0, DefaultLocation()), expected: 1648},
+		{inputs: time.Date(2029, 1, 1, 0, 0, 0, 0, DefaultLocation()), expected: 2753},
+	}
+
+	for _, testcase := range inputs {
+		res := WordleForDay(testcase.inputs)
 		assert.Equal(t, testcase.expected, res)
 	}
 }
