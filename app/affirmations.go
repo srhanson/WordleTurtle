@@ -1,6 +1,9 @@
 package app
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
 
 func getRandomString(choices []string) string {
 	return choices[rand.Intn(len(choices))]
@@ -57,4 +60,22 @@ func getConsolation() string {
 		"Plays like that are why participation trophies were created :clowntrophy:",
 	}
 	return getRandomString(consolations)
+}
+
+func getSpecialDayAffirmation(score int) string {
+	today := NowDefault()
+	if today.Day() == 25 && today.Month() == time.December {
+		var messages []string
+		if score <= 4 {
+			messages = append(messages, "It's a Christmas Miracle!! :christmas_tree:")
+			messages = append(messages, "Ho ho ho! You are on the nice list! :santa:")
+			messages = append(messages, "Grinch isn't the only one to steal Christmas :grinch:")
+			messages = append(messages, "Yippee-ki-yay Mother Hubbard! :diehardxmas:")
+		} else {
+			messages = append(messages, "Jingle Bells, that score smells, try another day! :bell:")
+			messages = append(messages, "A stocking full of coal for plays like that :coal:")
+		}
+		return getRandomString(messages)
+	}
+	return ""
 }
